@@ -3,3 +3,7 @@ langchain
 argparse
 moviepy
 openai-whisper
+halo
+torch
+numpy
+cv2

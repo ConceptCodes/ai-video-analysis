@@ -4,10 +4,14 @@ import cv2
 import base64
 import io
 import tempfile
+import numpy as np
+import torch
+from halo import Halo
+from tqdm import tqdm
 from moviepy.editor import VideoFileClip
 from langchain.schema import HumanMessage, SystemMessage
 
-from llm import vision_llm
+from llm import vision_llm, base_llm
 
 model = whisper.load_model("turbo")
 
@@ -38,6 +42,8 @@ def split_video_into_chunks(video_path, chunk_duration):
     Returns:
       list: List of file paths for the generated video chunks.
     """
+    spinner = Halo(text="Splitting video into chunks", spinner="dots")
+    spinner.start()
     output_dir = "assets/chunks"
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -62,6 +68,7 @@ def split_video_into_chunks(video_path, chunk_duration):
         index += 1
 
     video.close()
+    spinner.succeed(f"Generated {len(chunks)} video chunks.")
     return chunks
 
 
@@ -70,7 +77,7 @@ def create_assets_dir():
         os.makedirs("assets")
 
 
-def transcribe_audio(audio_path):
+def transcribe_audio(audio_buffer):
     """
     Transcribes the input audio using the Whisper API.
 
@@ -80,7 +87,16 @@ def transcribe_audio(audio_path):
     Returns:
       str: Transcribed text from the audio.
     """
-    result = model.transcribe(audio_path)
+    spinner = Halo(text="Transcribing audio", spinner="dots")
+    spinner.start()
+
+    audio_buffer.seek(0)
+    audio_data = np.frombuffer(audio_buffer.read(), np.int16)
+    # Normalize the audio data
+    audio_tensor = torch.from_numpy(audio_data).float() / 32768.0
+    result = model.transcribe(audio_tensor)
+
+    spinner.succeed("Transcription complete")
     return result["text"]
 
 
@@ -108,6 +124,9 @@ def analyse_chunk(chunk_path):
     Returns:
       str: Transcribed text from the video audio.
     """
+    spinner = Halo(text="Analyzing video chunk", spinner="dots")
+    spinner.start()
+
     cap = cv2.VideoCapture(chunk_path)
     frame_count = 0
     frames = []
@@ -121,8 +140,11 @@ def analyse_chunk(chunk_path):
         frame_count += 1
 
     cap.release()
+    spinner.succeed(f"Extracted {frame_count} frames from the video chunk.")
 
-    for frame in frames:
+    spinner = Halo(text="Analyzing video frames", spinner="dots")
+    spinner.start()
+    for frame in tqdm(frames):
         messages = [
             SystemMessage(
                 content=[
@@ -144,8 +166,26 @@ def analyse_chunk(chunk_path):
         ]
         result = vision_llm(messages)
         results.append(result)
+    spinner.succeed(f"Analyzed {frame_count} video frames.")
 
-    return results
+    spinner = Halo(text="Summarizing video chunk", spinner="dots")
+    spinner.start()
+    chunk_summary = base_llm(
+        [
+            HumanMessage(
+                content=[
+                    {
+                        "type": "text",
+                        "text": "Given the text descriptions of each frame in a video segment, what is the overall theme of the video segment? Please be as detailed as possible.",
+                    },
+                    {"type": "text", "text": " ".join(results)},
+                ]
+            ),
+        ]
+    )
+
+    spinner.succeed("Video chunk analysis complete.")
+    return chunk_summary
 
 
 def extract_audio_from_video(video_path):
@@ -158,6 +198,8 @@ def extract_audio_from_video(video_path):
     Returns:
       io.BytesIO: In-memory buffer containing the WAV audio data.
     """
+    spinner = Halo(text="Extracting audio from video", spinner="dots")
+    spinner.start()
     video = VideoFileClip(video_path)
 
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=True) as temp_file:
@@ -170,4 +212,5 @@ def extract_audio_from_video(video_path):
         audio_data = f.read()
     os.remove(temp_audio_path)
 
+    spinner.succeed("Audio extraction complete.")
     return io.BytesIO(audio_data)
