@@ -1,0 +1,5 @@
+langchain_ollama
+langchain
+argparse
+moviepy
+openai-whisper
