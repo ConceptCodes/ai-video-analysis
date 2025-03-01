@@ -48,5 +48,6 @@ graph TD
 
 ## Roadmap
 - [x] Reduce the number of frames to process
+- [ ] Speed up transcription
 - [ ] Generate report
 - [ ] Implement brand asset detection
