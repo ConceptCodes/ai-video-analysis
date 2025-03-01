@@ -16,25 +16,25 @@ from llm import vision_llm, base_llm
 model = whisper.load_model("turbo")
 
 
-def delete_directory_contents(directory):
+def delete_directory_contents(dir_path: str):
     """
     Deletes all files and subdirectories in the specified directory.
 
     Args:
-      directory (str): Path to the directory to be emptied.
+      dir_path (str): Path to the directory to be emptied.
     """
-    if not os.path.exists(directory):
-        raise FileNotFoundError(f"Directory {directory} does not exist.")
+    if not os.path.exists(dir_path):
+        raise FileNotFoundError(f"Directory {dir_path} does not exist.")
 
-    for item in os.listdir(directory):
-        item_path = os.path.join(directory, item)
+    for item in os.listdir(dir_path):
+        item_path = os.path.join(dir_path, item)
         if os.path.isfile(item_path):
             os.remove(item_path)
         elif os.path.isdir(item_path):
             os.rmdir(item_path)
 
 
-def split_video_into_chunks(video_path, chunk_duration):
+def split_video_into_chunks(video_path: str, chunk_duration: float):
     """
     Splits the input video into multiple chunks of specified duration.
 
@@ -80,7 +80,7 @@ def create_assets_dir():
         os.makedirs("assets/chunks")
 
 
-def transcribe_audio(audio_buffer):
+def transcribe_audio(audio_buffer: io.BytesIO):
     """
     Transcribes the input audio using the Whisper API.
 
@@ -103,7 +103,7 @@ def transcribe_audio(audio_buffer):
     return result["text"]
 
 
-def get_base64_image(frame):
+def get_base64_image(frame: np.ndarray):
     """
     Converts the input frame to a base64 encoded image.
 
@@ -117,7 +117,7 @@ def get_base64_image(frame):
     return base64.b64encode(buffer).decode("utf-8")
 
 
-def analyse_chunk(chunk_path):
+def analyse_chunk(chunk_path: str):
     """
     Analyzes the input video by analyzing each frame using a vision model.
 
@@ -169,7 +169,7 @@ def analyse_chunk(chunk_path):
             ),
         ]
         result = vision_llm(messages)
-        results.append(result)
+        results.append(result.content)
 
     spinner = Halo(text="Summarizing video chunk", spinner="dots")
     spinner.start()
@@ -192,13 +192,13 @@ def analyse_chunk(chunk_path):
             ]
         ),
     ]
-    chunk_summary = base_llm(messages)["content"]
+    chunk_summary = base_llm(messages)
 
     spinner.succeed("Video chunk analysis complete.")
-    return chunk_summary
+    return chunk_summary.content
 
 
-def extract_audio_from_video(video_path):
+def extract_audio_from_video(video_path: str):
     """
     Extracts audio from the input video file and returns it as an in-memory WAV audio buffer.
 
@@ -226,7 +226,7 @@ def extract_audio_from_video(video_path):
     return io.BytesIO(audio_data)
 
 
-def generate_report(requirements, results):
+def generate_report(requirements: str, results: list):
     with open(requirements, "r") as f:
         requirements = f.read()
     messages = [
@@ -245,11 +245,11 @@ def generate_report(requirements, results):
                     "text": "Based on the following requirements and the analysis of the video segments, generate a report.",
                 },
                 {"type": "text", "text": "Requirements:"},
-                {"type": "text", "text": "\n".join(requirements)},
+                {"type": "text", "text": requirements},
                 {"type": "text", "text": "Results:"},
                 {"type": "text", "text": "\n".join(results)},
             ]
         ),
     ]
-
-    return base_llm(messages)["content"]
+    result = base_llm(messages)
+    return result.content
