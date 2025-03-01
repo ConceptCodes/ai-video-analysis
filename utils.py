@@ -23,6 +23,9 @@ def delete_directory_contents(directory):
     Args:
       directory (str): Path to the directory to be emptied.
     """
+    if not os.path.exists(directory):
+        raise FileNotFoundError(f"Directory {directory} does not exist.")
+
     for item in os.listdir(directory):
         item_path = os.path.join(directory, item)
         if os.path.isfile(item_path):
@@ -116,7 +119,7 @@ def get_base64_image(frame):
 
 def analyse_chunk(chunk_path):
     """
-    Analyzes the input video by transcribing its audio and extracting frames.
+    Analyzes the input video by analyzing each frame using a vision model.
 
     Args:
       video_path (str): Path to the input video file.
@@ -142,9 +145,7 @@ def analyse_chunk(chunk_path):
     cap.release()
     spinner.succeed(f"Extracted {frame_count} frames from the video chunk.")
 
-    spinner = Halo(text="Analyzing video frames", spinner="dots")
-    spinner.start()
-    for frame in tqdm(frames):
+    for frame in tqdm(frames, desc="Analyzing video frames"):
         messages = [
             SystemMessage(
                 content=[
@@ -166,7 +167,6 @@ def analyse_chunk(chunk_path):
         ]
         result = vision_llm(messages)
         results.append(result)
-    spinner.succeed(f"Analyzed {frame_count} video frames.")
 
     spinner = Halo(text="Summarizing video chunk", spinner="dots")
     spinner.start()

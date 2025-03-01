@@ -6,4 +6,4 @@ openai-whisper
 halo
 torch
 numpy
-cv2
+opencv-python

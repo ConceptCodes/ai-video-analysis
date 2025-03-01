@@ -9,6 +9,7 @@ from utils import (
     analyse_chunk,
     extract_audio_from_video,
     transcribe_audio,
+    delete_directory_contents,
 )
 from constants import VIDEO_CHUNK_LENGTH, NUM_WORKERS
 
@@ -69,6 +70,8 @@ def main():
     for chunk in chunks:
         result = process_chunk(chunk)
         results.append(result)
+
+    delete_directory_contents("assets/chunks")
 
     print(len(results))
 
