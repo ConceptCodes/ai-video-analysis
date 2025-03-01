@@ -6,6 +6,7 @@ At a recent tech meetup, I encountered a company in the content creation space t
 - Python 3.6 or higher
 - GPU with CUDA support (optional)
 - ffmpeg
+- Ollama
 
 ## Architecture
 ```mermaid
@@ -32,6 +33,12 @@ graph TD
   pip install -r requirements.txt
 ```
 
+3. Pull Ollama models
+```bash
+  ollama pull llava-llama3 && \
+  ollama pull llama3.1
+``` 
+
 ## Usage
 
 1. Run the script
@@ -40,6 +47,6 @@ graph TD
 ```
 
 ## Roadmap
-- [ ] Reduce the number of frames to process
+- [x] Reduce the number of frames to process
 - [ ] Generate report
 - [ ] Implement brand asset detection
