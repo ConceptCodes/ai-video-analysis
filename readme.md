@@ -7,6 +7,18 @@ At a recent tech meetup, I encountered a company in the content creation space t
 - GPU with CUDA support (optional)
 - ffmpeg
 
+## Architecture
+```mermaid
+graph TD
+    A[Input Video] -->|Split into Chunks| B[Video Chunks]
+    B -->|Extract Audio| C[Audio Data]
+    B -->|Analyze Frames| D[Frame Analysis]
+    C -->|Transcribe Audio| E[Transcription]
+    D -->|Summarize Analysis| F[Chunk Summary]
+    E -->|Generate Report| G[Final Report]
+    F -->|Generate Report| G[Final Report]
+```
+
 ## Installation
 
 1. Clone the repository

@@ -7,3 +7,4 @@ halo
 torch
 numpy
 opencv-python
+rich

@@ -10,6 +10,7 @@ from utils import (
     extract_audio_from_video,
     transcribe_audio,
     delete_directory_contents,
+    generate_report,
 )
 from constants import VIDEO_CHUNK_LENGTH, NUM_WORKERS
 
@@ -37,10 +38,20 @@ def setup_cli():
         help="Path to the video file",
     )
 
+    parser.add_argument(
+        "--txt",
+        type=str,
+        default="",
+        help="Path to the text file",
+    )
+
     args = parser.parse_args()
 
     if not args.video:
         parser.error("Please provide the path to the video file")
+
+    if not args.txt:
+        parser.error("Please provide the path to the requirements text file")
 
     return args
 
@@ -50,8 +61,8 @@ def process_chunk(chunk):
     transcription = transcribe_audio(audio)
     video_analysis = analyse_chunk(chunk)
     return {
-        "text": transcription,
-        "video": video_analysis,
+        "transcription": transcription,
+        "video_analysis": video_analysis,
     }
 
 
@@ -67,13 +78,15 @@ def main():
     #     for future in as_completed(futures):
     #         results.append(future.result())
 
-    for chunk in chunks:
+    for index, chunk in enumerate(chunks):
+        print(f"\nProcessing chunk {index + 1} of {len(chunks)}")
         result = process_chunk(chunk)
         results.append(result)
 
-    delete_directory_contents("assets/chunks")
+    report = generate_report(args.txt, results)
+    print(report)
 
-    print(len(results))
+    delete_directory_contents("assets/chunks")
 
 
 if __name__ == "__main__":

@@ -47,10 +47,8 @@ def split_video_into_chunks(video_path, chunk_duration):
     """
     spinner = Halo(text="Splitting video into chunks", spinner="dots")
     spinner.start()
-    output_dir = "assets/chunks"
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
 
+    output_dir = "assets/chunks"
     video = VideoFileClip(video_path)
     total_duration = video.duration
     chunks = []
@@ -78,6 +76,8 @@ def split_video_into_chunks(video_path, chunk_duration):
 def create_assets_dir():
     if not os.path.exists("assets"):
         os.makedirs("assets")
+    if not os.path.exists("assets/chunks"):
+        os.makedirs("assets/chunks")
 
 
 def transcribe_audio(audio_buffer):
@@ -85,7 +85,7 @@ def transcribe_audio(audio_buffer):
     Transcribes the input audio using the Whisper API.
 
     Args:
-      audio (str): Path to the audio file to be transcribed.
+      audio_buffer (io.BytesIO): In-memory buffer containing the audio data.
 
     Returns:
       str: Transcribed text from the audio.
@@ -122,7 +122,7 @@ def analyse_chunk(chunk_path):
     Analyzes the input video by analyzing each frame using a vision model.
 
     Args:
-      video_path (str): Path to the input video file.
+      chunk_path (str): Path to the input video file.
 
     Returns:
       str: Transcribed text from the video audio.
@@ -134,6 +134,7 @@ def analyse_chunk(chunk_path):
     frame_count = 0
     frames = []
     results = []
+    fps = cap.get(cv2.CAP_PROP_FPS)
 
     while cap.isOpened():
         ret, frame = cap.read()
@@ -144,6 +145,8 @@ def analyse_chunk(chunk_path):
 
     cap.release()
     spinner.succeed(f"Extracted {frame_count} frames from the video chunk.")
+
+    frames = [frame for i, frame in enumerate(frames) if i % int(fps) == 0]
 
     for frame in tqdm(frames, desc="Analyzing video frames"):
         messages = [
@@ -157,7 +160,7 @@ def analyse_chunk(chunk_path):
             ),
             HumanMessage(
                 content=[
-                    {"type": "text", "text": "What can you see in this image?"},
+                    {"type": "text", "text": "What can you see in this frame?"},
                     {
                         "type": "image_url",
                         "image_url": get_base64_image(frame),
@@ -170,19 +173,26 @@ def analyse_chunk(chunk_path):
 
     spinner = Halo(text="Summarizing video chunk", spinner="dots")
     spinner.start()
-    chunk_summary = base_llm(
-        [
-            HumanMessage(
-                content=[
-                    {
-                        "type": "text",
-                        "text": "Given the text descriptions of each frame in a video segment, what is the overall theme of the video segment? Please be as detailed as possible.",
-                    },
-                    {"type": "text", "text": " ".join(results)},
-                ]
-            ),
-        ]
-    )
+    messages = [
+        SystemMessage(
+            content=[
+                {
+                    "type": "text",
+                    "text": "I summarize the content of the video segment based on the analysis of individual frames. Please be as detailed as possible.",
+                }
+            ]
+        ),
+        HumanMessage(
+            content=[
+                {
+                    "type": "text",
+                    "text": "What is the overall theme of the video segment?",
+                },
+                {"type": "text", "text": "\n".join(results)},
+            ]
+        ),
+    ]
+    chunk_summary = base_llm(messages)["content"]
 
     spinner.succeed("Video chunk analysis complete.")
     return chunk_summary
@@ -202,7 +212,7 @@ def extract_audio_from_video(video_path):
     spinner.start()
     video = VideoFileClip(video_path)
 
-    with tempfile.NamedTemporaryFile(suffix=".wav", delete=True) as temp_file:
+    with tempfile.NamedTemporaryFile(suffix=".wav") as temp_file:
         temp_audio_path = temp_file.name
 
     video.audio.write_audiofile(temp_audio_path, verbose=False, logger=None)
@@ -214,3 +224,32 @@ def extract_audio_from_video(video_path):
 
     spinner.succeed("Audio extraction complete.")
     return io.BytesIO(audio_data)
+
+
+def generate_report(requirements, results):
+    with open(requirements, "r") as f:
+        requirements = f.read()
+    messages = [
+        SystemMessage(
+            content=[
+                {
+                    "type": "text",
+                    "text": "Your goal is to analyze the video segments and determine if they meet the specified requirements.",
+                }
+            ]
+        ),
+        HumanMessage(
+            content=[
+                {
+                    "type": "text",
+                    "text": "Based on the following requirements and the analysis of the video segments, generate a report.",
+                },
+                {"type": "text", "text": "Requirements:"},
+                {"type": "text", "text": "\n".join(requirements)},
+                {"type": "text", "text": "Results:"},
+                {"type": "text", "text": "\n".join(results)},
+            ]
+        ),
+    ]
+
+    return base_llm(messages)["content"]
