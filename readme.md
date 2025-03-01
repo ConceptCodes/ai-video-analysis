@@ -36,7 +36,7 @@ graph TD
 
 1. Run the script
 ```bash
-  python main.py -v <path_to_video>
+  python main.py -v <path_to_video> --txt <path_to_requirements_file>
 ```
 
 ## Roadmap
