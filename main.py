@@ -11,6 +11,7 @@ from utils import (
     transcribe_audio,
     delete_directory_contents,
     generate_report,
+    is_filepath_valid,
 )
 from constants import VIDEO_CHUNK_LENGTH, NUM_WORKERS
 
@@ -36,21 +37,22 @@ def setup_cli():
         type=str,
         default="",
         help="Path to the video file",
+        required=True,
     )
-
     parser.add_argument(
         "--txt",
         type=str,
         default="",
         help="Path to the text file",
+        required=True,
     )
 
     args = parser.parse_args()
 
-    if not args.video:
+    if not is_filepath_valid(args.video):
         parser.error("Please provide the path to the video file")
 
-    if not args.txt:
+    if not is_filepath_valid(args.txt):
         parser.error("Please provide the path to the requirements text file")
 
     return args

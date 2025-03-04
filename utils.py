@@ -227,6 +227,16 @@ def extract_audio_from_video(video_path: str):
 
 
 def generate_report(requirements: str, results: list):
+    """
+    Generates a report based on the specified requirements and the results of video analysis.
+
+    Args:
+      requirements (str): Path to the requirements text file.
+      results (list): List of results from video analysis.
+
+    Returns:
+      str: Report containing the requirements and results.
+    """
     with open(requirements, "r") as f:
         requirements = f.read()
     messages = [
@@ -253,3 +263,15 @@ def generate_report(requirements: str, results: list):
     ]
     result = base_llm(messages)
     return result.content
+
+def is_filepath_valid(filepath: str):
+    """
+    Checks if the specified filepath is valid.
+
+    Args:
+      filepath (str): Path to the file.
+
+    Returns:
+      bool: True if the filepath is valid, False otherwise.
+    """
+    return os.path.exists(filepath) and os.path.isfile(filepath)
