@@ -242,12 +242,12 @@ def generate_report(requirements: str, results: list):
             content=[
                 {
                     "type": "text",
-                    "text": "Based on the following requirements and the analysis of the video segments, generate a report.",
+                    "text": "Based on the following requirements and the analysis of the video segments, please return the question and its result.",
                 },
                 {"type": "text", "text": "Requirements:"},
                 {"type": "text", "text": requirements},
                 {"type": "text", "text": "Results:"},
-                {"type": "text", "text": "\n".join(results)},
+                {"type": "text", "text": str(results)},
             ]
         ),
     ]
